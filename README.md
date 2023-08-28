@@ -8,4 +8,6 @@ Currently, no real database is used and the data is persisted using an in-memory
 
 The project can be started using ./gradlew bootRun (starting the service on localhost:8080), the tests can be run with ./gradlew test
 
+To successfully store the images on S3, you would need to provide your own credentials in the application.properties file, however, better would be to expose the S3 bucket via an AWS GateWay, omitting the need for storing credentials. 
+
 
