@@ -1,0 +1,214 @@
+openapi: 3.0.3
+info:
+  title: SpeedCam Service
+  description: Facilitate automated billing upon input received from speedcam
+  version: 1.0.0
+servers:
+  - url: localhost:8080
+    description: For local development/testing.
+paths:
+  /licenseplate/{registryNo}:
+    parameters:
+      - in: path
+        name: registryNo
+        required: true
+        schema:
+          type: string
+        description: car registry number
+    get:
+      summary: get owner information from car registry no
+      operationId: getOwnerByRegistryNo
+      tags:
+        - licenseplate
+      responses:
+        '200':
+          description: successfully retrieved owner information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerIdDTO'
+        '404':
+          description: An owner with the specified ID was not found.
+          content:
+            application/json:
+             schema:
+               $ref: '#/components/schemas/Error'
+  /carowners:
+    post: 
+      summary: add new owner to the database
+      operationId: createOwner
+      tags:
+        - licenseplate
+      requestBody:
+        content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/OwnerDTO'
+                
+      responses: 
+        '201':
+          description: successfully created owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerIdDTO'
+        '404':
+          description: owner could not be created
+          content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/Error'
+  /speedtrap:
+    post: 
+      summary: process speeding incident
+      operationId: processIncident
+      tags:
+        - speedtrap
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+              # 'file' will be the field name in this multipart request
+                file:
+                  type: string
+                  format: binary
+                registryNo:
+                  type: string
+                maxSpeed:
+                  type: integer   
+                  format: int32
+                actualSpeed:
+                  type: integer   
+                  format: int32
+                
+      responses: 
+        '201':
+          description: successfully uploaded information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingDTO'
+        '404':
+          description: The file could not be uploaded
+          content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/Error'
+  /billing:
+    post: 
+      summary: billing process
+      operationId: billingProcess
+      tags:
+        - billing
+      requestBody:
+         content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeedingIncidentDTO'
+                
+      responses: 
+        '201':
+          description: successfully uploaded information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingDTO'
+        '404':
+          description: Billing could not be processed
+          content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/Error'
+ 
+components:
+  schemas:
+    OwnerDTO:
+      type: object
+      required:
+        - registryNo
+        - name
+        - surname
+        - street
+        - number
+        - postalCode
+        - city
+      properties:
+        name:
+          type: string
+        registryNo:
+          type: string
+        surname:
+          type: string
+        street:
+          type: string
+        number:
+          type: integer
+          format: int32
+        postalCode:
+          type: integer
+          format: int32
+        city: 
+          type: string
+    SpeedingIncidentDTO:
+      type: object
+      required:
+        - ownerID
+        - photoLocation
+        - maxSpeed
+        - actualSpeed
+      properties:
+        ownerID:
+          type: integer
+          format: int64
+        photoLocation:
+          type: string
+        maxSpeed:
+          type: integer
+          format: int32
+        actualSpeed:
+          type: integer
+          format: int32
+    BillingDTO:
+      type: object
+      required: 
+        - ownerID
+        - fineInChf  
+      properties:
+        owner:
+          type: integer
+          format: int64
+        fineInChf:
+          type: integer
+          format: int32
+    OwnerIdDTO:
+      type: object
+      required: 
+        - id
+      properties:
+        id:
+          type: integer
+          format: int64
+    Okay:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string

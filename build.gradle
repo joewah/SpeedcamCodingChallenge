@@ -1,0 +1,99 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import java.util.regex.Matcher
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '2.7.14'
+	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+	id "org.owasp.dependencycheck" version "7.3.0"
+    id "org.openapi.generator" version "6.2.0"
+    id 'eclipse'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '11'
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	//implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+	//implementation 'org.springframework.cloud:spring-cloud-starter-aws-messaging:2.2.6.RELEASE'
+    //implementation 'org.springframework.cloud:spring-cloud-starter-aws-parameter-store-config:2.2.6.RELEASE'
+	
+	implementation 'com.h2database:h2'
+	
+	implementation platform('software.amazon.awssdk:bom:2.18.21')
+	implementation 'software.amazon.awssdk:s3'
+	
+	implementation 'org.mockito:mockito-core:4.0.0'
+	
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.13'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.4'
+	implementation 'org.hibernate:hibernate-java8:5.1.0.Final'
+	implementation 'org.modelmapper:modelmapper:2.4.4'
+	implementation 'com.sun.activation:javax.activation:1.2.0'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	    // Annotations
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    annotationProcessor 'io.swagger.core.v3:swagger-annotations:2.2.6'
+	
+}
+
+def ApiYml = "$rootDir/src/main/resources/openapi.yml".toString()
+
+openApiValidate {
+    inputSpec = ApiYml
+    recommend = true
+}
+
+/* server code configuration */
+task buildOpenAPIServerCode(type: GenerateTask) {
+    generatorName = "spring"
+    inputSpec = ApiYml
+    outputDir = "$buildDir/generated".toString()
+
+    groupId = "$project.group"
+    id = "$project.name"
+    version = "$project.version"
+    apiPackage = "${project.group}.${project.name}.api"
+    modelPackage = "${project.group}.${project.name}.api.model"
+    enablePostProcessFile = true
+    skipOverwrite = false
+    configOptions = [
+            configPackage       : "${project.group}.api.config",
+            dateLibrary         : "java8",
+            serializationLibrary: "jackson",
+            library             : "spring-boot",
+            useBeanValidation   : "true",
+            interfaceOnly       : "true",
+            serializableModel   : "true",
+            useTags             : "true",
+            oas3                : "true",
+    ]
+}
+
+// Pass build information to actuator.
+// Access results at http://localhost:8080/actuator/info
+springBoot {
+    buildInfo()
+}
+
+sourceSets.main.java.srcDir "$buildDir/generated/src/main/java"
+
+compileJava.dependsOn(buildOpenAPIServerCode)
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
